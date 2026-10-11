@@ -1,0 +1,2 @@
+mohammed,m123456,CUSTOMER
+farah,f567890,MANAGER
