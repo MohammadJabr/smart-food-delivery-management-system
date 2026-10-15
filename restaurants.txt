@@ -1,0 +1,4 @@
+Pizza House,true
+Burger House,false
+Palestine Kitchen,true
+Italian Restaurant,false
