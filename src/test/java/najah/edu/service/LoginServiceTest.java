@@ -1,25 +1,51 @@
 package najah.edu.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.ArrayList;
+import najah.edu.domain.User;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
-import najah.edu.domain.User;
+import static org.junit.jupiter.api.Assertions.*;
 
 class LoginServiceTest {
 
     @Test
-    void testLoginCorrect() {
-    User user = new User("farah", "1234");
-     LoginService service = new LoginService(user);
-     boolean result = service.login("farah", "1234");
-      assertTrue(result);
+    void testLogin() {
+        ArrayList<User> users = new ArrayList<User>();
+        users.add(new User("farah", "f123456", "CUSTOMER"));
+        users.add(new User("mohammed", "m567890", "MANAGER"));
+
+        LoginService service = new LoginService(users);
+
+        User customer = service.login("farah", "f123456");
+        assertEquals("CUSTOMER", customer.getRole());
+
+        User manager = service.login("mohammed", "m567890");
+        assertEquals("MANAGER", manager.getRole());
+
+        assertThrows(SecurityException.class, new Executable() {
+            @Override
+            public void execute() {
+                service.login("Wrong", "f123456");
+            }
+        });
+
+        assertThrows(SecurityException.class, new Executable() {
+            @Override
+            public void execute() {
+                service.login("farah", "f999999");
+            }
+        });
     }
     @Test
-    void testLoginIncorrect() {
-     User user = new User("farah", "1234");
-     LoginService service = new LoginService(user);
-     boolean result = service.login("farah", "9999");
-       assertFalse(result);
+    void testInvalidPasswordFormat() {
+
+        assertThrows(IllegalArgumentException.class, new Executable() {
+            @Override
+            public void execute() {
+                new User("farah", "1234", "CUSTOMER");
+            }
+        });
     }
 }
