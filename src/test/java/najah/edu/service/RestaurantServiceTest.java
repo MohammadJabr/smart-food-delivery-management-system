@@ -56,4 +56,32 @@ class RestaurantServiceTest {
             assertTrue(restaurant.isOpen());
         }
     }
+    
+    @Test
+    void testAllRestaurantsAreClosed ()
+    {
+    	ArrayList<Restaurant> restaurants =
+                new ArrayList<Restaurant>();
+
+        restaurants.add(
+                new Restaurant("Pizza House", false));
+
+        restaurants.add(
+                new Restaurant("Burger House", false));
+
+        restaurants.add(
+                new Restaurant("Palestine Kitchen", false));
+
+        RestaurantService service =
+                new RestaurantService(restaurants);
+
+        ArrayList<Restaurant> availableRestaurants =
+                service.getAvailableRestaurants();
+
+        // No restaurants are open
+        assertEquals(0, availableRestaurants.size());
+
+       
+    }
+   
 }
