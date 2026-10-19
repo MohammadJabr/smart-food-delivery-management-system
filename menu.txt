@@ -1,0 +1,10 @@
+Pizza House,Margherita Pizza,12.50,true
+Pizza House,Pepperoni Pizza,15.00,false
+Pizza House,Vegetarian Pizza,13.50,true
+Burger House,Classic Burger,10.00,true
+Burger House,Cheese Burger,11.50,false
+Palestine Kitchen,Musakhan,14.00,true
+Palestine Kitchen,Maqluba,13.00,true
+Palestine Kitchen,Mansaf,18.00,false
+Italian Restaurant,Lasagna,16.50,true
+Italian Restaurant,Pasta Alfredo,14.50,true
