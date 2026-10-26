@@ -8,14 +8,20 @@ public class Order {
     private Restaurant restaurant;
     private List<OrderItem> items;
     private String status;
+    private String deliveryAddress;
 
     public Order(Restaurant restaurant) {
+
         if (restaurant == null) {
-            throw new IllegalArgumentException("Restaurant cannot be null");
+            throw new IllegalArgumentException(
+                    "Restaurant cannot be null"
+            );
         }
 
         if (!restaurant.isOpen()) {
-            throw new IllegalArgumentException("Cannot place an order from a closed restaurant");
+            throw new IllegalArgumentException(
+                    "Cannot place an order from a closed restaurant"
+            );
         }
 
         this.restaurant = restaurant;
@@ -24,8 +30,11 @@ public class Order {
     }
 
     public void addItem(MenuItem menuItem, int quantity) {
+
         if (menuItem == null) {
-            throw new IllegalArgumentException("Menu item cannot be null");
+            throw new IllegalArgumentException(
+                    "Menu item cannot be null"
+            );
         }
 
         if (!restaurant.getMenuItems().contains(menuItem)) {
@@ -40,11 +49,14 @@ public class Order {
             );
         }
 
-        OrderItem orderItem = new OrderItem(menuItem, quantity);
+        OrderItem orderItem =
+                new OrderItem(menuItem, quantity);
+
         items.add(orderItem);
     }
 
     public double getTotal() {
+
         double total = 0;
 
         for (OrderItem item : items) {
@@ -65,11 +77,50 @@ public class Order {
     public String getStatus() {
         return status;
     }
-    
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(String deliveryAddress) {
+
+        if (deliveryAddress == null ||
+                deliveryAddress.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Delivery address cannot be empty"
+            );
+        }
+
+        this.deliveryAddress = deliveryAddress.trim();
+    }
+
     public void placeOrder() {
+
         if (items.isEmpty()) {
             throw new IllegalArgumentException(
-                "Cannot place an empty order"
+                    "Cannot place an empty order"
+            );
+        }
+
+        if (deliveryAddress == null) {
+            throw new IllegalArgumentException(
+                    "Delivery address is required"
+            );
+        }
+
+        if (restaurant.getDeliveryZone() == null ||
+                !deliveryAddress.equalsIgnoreCase(
+                        restaurant.getDeliveryZone())) {
+
+            throw new IllegalArgumentException(
+                    "Restaurant does not deliver to this area"
+            );
+        }
+
+        if (getTotal() < restaurant.getMinimumOrderValue()) {
+            throw new IllegalArgumentException(
+                    "Order total is below the minimum order value"
             );
         }
 
