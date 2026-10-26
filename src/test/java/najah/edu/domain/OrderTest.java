@@ -21,11 +21,14 @@ public class OrderTest {
         Order order = new Order(restaurant);
 
         order.addItem(pizza, 2);
+        
+        order.placeOrder();
 
         assertEquals(16.0, order.getTotal());
 
         assertEquals("PENDING", order.getStatus());
     }
+    
     @Test
     public void testCannotAddItemNotInRestaurantMenu() {
 
@@ -42,6 +45,7 @@ public class OrderTest {
                 () -> order.addItem(burger, 1)
         );
     }
+    
     @Test
     public void testCannotAddItemWithInvalidQuantity() {
 
@@ -59,5 +63,55 @@ public class OrderTest {
                 IllegalArgumentException.class,
                 () -> order.addItem(pizza, 0)
         );
+    }
+    
+    @Test
+    public void testCannotAddUnavailableMenuItem() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
+        MenuItem pizza =
+                new MenuItem("Pepperoni Pizza", 15.0, false);
+
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> order.addItem(pizza, 1)
+        );
+    }
+    
+    @Test
+    public void testCannotAddItemWithNegativeQuantity() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
+        MenuItem pizza =
+                new MenuItem("Pizza", 8.0, true);
+
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> order.addItem(pizza, -1)
+        );
+    }
+    
+    @Test
+    public void testCannotPlaceEmptyOrder() {
+        Restaurant restaurant = new Restaurant("Pizza House", true);
+        Order order = new Order(restaurant);
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> order.placeOrder()
+        );
+        assertEquals("DRAFT", order.getStatus());
     }
 }
