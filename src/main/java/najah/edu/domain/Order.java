@@ -126,4 +126,24 @@ public class Order {
 
         status = "PENDING";
     }
+    
+    public void startPreparing() {
+        if (!"PENDING".equals(status)) {
+            throw new IllegalStateException(
+                    "Only pending orders can start preparing"
+            );
+        }
+
+        status = "PREPARING";
+    }
+    
+    public void cancelOrder() {
+        if (!"PENDING".equals(status)) {
+            throw new IllegalStateException(
+                    "Only pending orders can be cancelled"
+            );
+        }
+
+        status = "CANCELLED";
+    }
 }
