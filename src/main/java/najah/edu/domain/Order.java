@@ -20,7 +20,7 @@ public class Order {
 
         this.restaurant = restaurant;
         this.items = new ArrayList<>();
-        this.status = "PENDING";
+        this.status = "DRAFT";
     }
 
     public void addItem(MenuItem menuItem, int quantity) {
@@ -64,5 +64,15 @@ public class Order {
 
     public String getStatus() {
         return status;
+    }
+    
+    public void placeOrder() {
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Cannot place an empty order"
+            );
+        }
+
+        status = "PENDING";
     }
 }
