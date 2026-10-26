@@ -9,6 +9,7 @@ public class Order {
     private List<OrderItem> items;
     private String status;
     private String deliveryAddress;
+    private Driver assignedDriver;
 
     public Order(Restaurant restaurant) {
 
@@ -27,6 +28,7 @@ public class Order {
         this.restaurant = restaurant;
         this.items = new ArrayList<>();
         this.status = "DRAFT";
+        this.assignedDriver = null;
     }
 
     public void addItem(MenuItem menuItem, int quantity) {
@@ -95,6 +97,28 @@ public class Order {
         this.deliveryAddress = deliveryAddress.trim();
     }
 
+    public Driver getAssignedDriver() {
+        return assignedDriver;
+    }
+
+    public void assignDriver(Driver driver) {
+
+        if (driver == null) {
+            throw new IllegalArgumentException(
+                    "Driver cannot be null"
+            );
+        }
+
+        if (!driver.isAvailable()) {
+            throw new IllegalArgumentException(
+                    "Driver is not available"
+            );
+        }
+
+        this.assignedDriver = driver;
+        driver.setAvailable(false);
+    }
+
     public void placeOrder() {
 
         if (items.isEmpty()) {
@@ -126,8 +150,9 @@ public class Order {
 
         status = "PENDING";
     }
-    
+
     public void startPreparing() {
+
         if (!"PENDING".equals(status)) {
             throw new IllegalStateException(
                     "Only pending orders can start preparing"
@@ -136,8 +161,9 @@ public class Order {
 
         status = "PREPARING";
     }
-    
+
     public void cancelOrder() {
+
         if (!"PENDING".equals(status)) {
             throw new IllegalStateException(
                     "Only pending orders can be cancelled"
