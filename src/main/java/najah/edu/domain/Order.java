@@ -109,6 +109,12 @@ public class Order {
             );
         }
 
+        if (assignedDriver != null) {
+            throw new IllegalStateException(
+                    "A driver is already assigned to this order"
+            );
+        }
+
         if (!driver.isAvailable()) {
             throw new IllegalArgumentException(
                     "Driver is not available"
@@ -116,7 +122,7 @@ public class Order {
         }
 
         this.assignedDriver = driver;
-        driver.setAvailable(false);
+        driver.markBusy();
     }
 
     public void placeOrder() {
