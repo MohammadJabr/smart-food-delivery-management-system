@@ -14,13 +14,15 @@ public class DriverAssignmentTest {
 
         Order order = new Order(restaurant);
 
-        Driver driver =
-                new Driver("rami", true);
+        Driver driver = new Driver(
+                "rami",
+                Driver.Status.AVAILABLE
+        );
 
         order.assignDriver(driver);
 
         assertEquals(driver, order.getAssignedDriver());
-        assertFalse(driver.isAvailable());
+        assertEquals(Driver.Status.BUSY, driver.getStatus());
     }
 
     @Test
@@ -31,8 +33,10 @@ public class DriverAssignmentTest {
 
         Order order = new Order(restaurant);
 
-        Driver driver =
-                new Driver("rami", false);
+        Driver driver = new Driver(
+                "rami",
+                Driver.Status.BUSY
+        );
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -52,5 +56,31 @@ public class DriverAssignmentTest {
                 IllegalArgumentException.class,
                 () -> order.assignDriver(null)
         );
+    }
+
+    @Test
+    public void testCannotAssignSecondDriverToSameOrder() {
+
+        Restaurant restaurant = new Restaurant("Pizza House", true);
+        Order order = new Order(restaurant);
+
+        Driver firstDriver = new Driver(
+                "Rami", Driver.Status.AVAILABLE
+        );
+
+        Driver secondDriver = new Driver(
+                "Ahmad", Driver.Status.AVAILABLE
+        );
+
+        order.assignDriver(firstDriver);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.assignDriver(secondDriver)
+        );
+
+        assertEquals(firstDriver, order.getAssignedDriver());
+        assertEquals(Driver.Status.BUSY, firstDriver.getStatus());
+        assertEquals(Driver.Status.AVAILABLE, secondDriver.getStatus());
     }
 }
