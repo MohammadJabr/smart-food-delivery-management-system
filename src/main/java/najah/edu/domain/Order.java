@@ -132,6 +132,13 @@ public class Order {
 
         this.assignedDriver = driver;
         driver.markBusy();
+
+        if (notificationService != null) {
+            notificationService.sendNotification(
+                    "A driver has been assigned to your order: "
+                    + driver.getName()
+            );
+        }
     }
 
     public void placeOrder() {
