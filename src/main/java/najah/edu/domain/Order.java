@@ -173,11 +173,22 @@ public class Order {
         status = "PENDING";
     }
 
-    public void startPreparing() {
+    public void confirmOrder() {
 
         if (!"PENDING".equals(status)) {
             throw new IllegalStateException(
-                    "Only pending orders can start preparing"
+                    "Only pending orders can be confirmed"
+            );
+        }
+
+        status = "CONFIRMED";
+    }
+
+    public void startPreparing() {
+
+        if (!"CONFIRMED".equals(status)) {
+            throw new IllegalStateException(
+                    "Only confirmed orders can start preparing"
             );
         }
 
@@ -199,5 +210,35 @@ public class Order {
         }
 
         status = "CANCELLED";
+    }
+    public void markReady() {
+
+        if (!"PREPARING".equals(status)) {
+            throw new IllegalStateException(
+                    "Only preparing orders can be marked as ready"
+            );
+        }
+
+        status = "READY";
+    }
+    public void markOutForDelivery() {
+
+        if (!"READY".equals(status)) {
+            throw new IllegalStateException(
+                    "Only ready orders can be marked as out for delivery"
+            );
+        }
+
+        status = "OUT_FOR_DELIVERY";
+    }
+    public void markDelivered() {
+
+        if (!"OUT_FOR_DELIVERY".equals(status)) {
+            throw new IllegalStateException(
+                    "Only orders out for delivery can be marked as delivered"
+            );
+        }
+
+        status = "DELIVERED";
     }
 }

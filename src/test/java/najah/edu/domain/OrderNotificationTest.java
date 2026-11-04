@@ -41,7 +41,10 @@ public class OrderNotificationTest {
         // Make order PENDING
         order.placeOrder();
 
-        // Change status to PREPARING
+        // Change status from PENDING to CONFIRMED
+        order.confirmOrder();
+
+        // Change status from CONFIRMED to PREPARING
         order.startPreparing();
 
         // Check status
