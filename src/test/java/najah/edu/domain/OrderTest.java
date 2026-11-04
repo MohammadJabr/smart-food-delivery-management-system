@@ -188,62 +188,82 @@ public class OrderTest {
                 () -> order.setDeliveryAddress("")
         );
     }
-    
+
     @Test
     public void testCancelPendingOrder() {
-        Restaurant restaurant = new Restaurant("Pizza House", true);
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
         restaurant.setDeliveryZone("Nablus");
         restaurant.setMinimumOrderValue(10.0);
 
-        MenuItem pizza = new MenuItem("Pizza", 8.0, true);
+        MenuItem pizza =
+                new MenuItem("Pizza", 8.0, true);
+
         restaurant.addMenuItem(pizza);
 
         Order order = new Order(restaurant);
+
         order.addItem(pizza, 2);
         order.setDeliveryAddress("Nablus");
 
         order.placeOrder();
+
         assertEquals("PENDING", order.getStatus());
 
         order.cancelOrder();
 
         assertEquals("CANCELLED", order.getStatus());
     }
-    
+
     @Test
     public void testCannotCancelDraftOrder() {
-        Restaurant restaurant = new Restaurant("Pizza House", true);
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
         Order order = new Order(restaurant);
 
         assertThrows(
-            IllegalStateException.class,
-            () -> order.cancelOrder()
+                IllegalStateException.class,
+                () -> order.cancelOrder()
         );
 
         assertEquals("DRAFT", order.getStatus());
     }
-    
+
     @Test
     public void testCannotCancelOrderOncePreparing() {
-        Restaurant restaurant = new Restaurant("Pizza House", true);
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
         restaurant.setDeliveryZone("Nablus");
         restaurant.setMinimumOrderValue(10.0);
 
-        MenuItem pizza = new MenuItem("Pizza", 8.0, true);
+        MenuItem pizza =
+                new MenuItem("Pizza", 8.0, true);
+
         restaurant.addMenuItem(pizza);
 
         Order order = new Order(restaurant);
+
         order.addItem(pizza, 2);
         order.setDeliveryAddress("Nablus");
 
         order.placeOrder();
+
+        // New lifecycle step
+        order.confirmOrder();
+
         order.startPreparing();
 
         assertEquals("PREPARING", order.getStatus());
 
         assertThrows(
-            IllegalStateException.class,
-            () -> order.cancelOrder()
+                IllegalStateException.class,
+                () -> order.cancelOrder()
         );
 
         assertEquals("PREPARING", order.getStatus());
