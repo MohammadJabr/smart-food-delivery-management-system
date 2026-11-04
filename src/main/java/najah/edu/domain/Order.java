@@ -3,6 +3,8 @@ package najah.edu.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+import najah.edu.notification.NotificationService;
+
 public class Order {
 
     private Restaurant restaurant;
@@ -10,6 +12,7 @@ public class Order {
     private String status;
     private String deliveryAddress;
     private Driver assignedDriver;
+    private NotificationService notificationService;
 
     public Order(Restaurant restaurant) {
 
@@ -101,6 +104,12 @@ public class Order {
         return assignedDriver;
     }
 
+    public void setNotificationService(
+            NotificationService notificationService) {
+
+        this.notificationService = notificationService;
+    }
+
     public void assignDriver(Driver driver) {
 
         if (driver == null) {
@@ -166,6 +175,12 @@ public class Order {
         }
 
         status = "PREPARING";
+
+        if (notificationService != null) {
+            notificationService.sendNotification(
+                    "Order status changed to PREPARING"
+            );
+        }
     }
 
     public void cancelOrder() {
