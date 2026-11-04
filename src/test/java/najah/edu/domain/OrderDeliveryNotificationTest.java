@@ -1,5 +1,5 @@
 package najah.edu.domain;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -35,6 +35,83 @@ public class OrderDeliveryNotificationTest {
 
         verify(notificationService).sendNotification(
                 "A driver has been assigned to your order: Rami"
+        );
+    }
+
+    @Test
+    public void testCustomerIsNotifiedWhenOrderGoesOutForDelivery() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
+        restaurant.setDeliveryZone("Nablus");
+        restaurant.setMinimumOrderValue(10.0);
+
+        MenuItem pizza =
+                new MenuItem("Pizza", 20.0, true);
+
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+
+        order.addItem(pizza, 1);
+        order.setDeliveryAddress("Nablus");
+
+        order.placeOrder();
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+
+        NotificationService notificationService =
+                mock(NotificationService.class);
+
+        order.setNotificationService(notificationService);
+
+        order.markOutForDelivery();
+
+        assertEquals("OUT_FOR_DELIVERY", order.getStatus());
+
+        verify(notificationService).sendNotification(
+                "Order status changed to OUT_FOR_DELIVERY"
+        );
+    }
+
+    @Test
+    public void testCustomerIsNotifiedWhenOrderIsDelivered() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+
+        restaurant.setDeliveryZone("Nablus");
+        restaurant.setMinimumOrderValue(10.0);
+
+        MenuItem pizza =
+                new MenuItem("Pizza", 20.0, true);
+
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+
+        order.addItem(pizza, 1);
+        order.setDeliveryAddress("Nablus");
+
+        order.placeOrder();
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+        order.markOutForDelivery();
+
+        NotificationService notificationService =
+                mock(NotificationService.class);
+
+        order.setNotificationService(notificationService);
+
+        order.markDelivered();
+
+        assertEquals("DELIVERED", order.getStatus());
+
+        verify(notificationService).sendNotification(
+                "Order status changed to DELIVERED"
         );
     }
 }

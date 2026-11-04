@@ -230,7 +230,14 @@ public class Order {
         }
 
         status = "OUT_FOR_DELIVERY";
+
+        if (notificationService != null) {
+            notificationService.sendNotification(
+                    "Order status changed to OUT_FOR_DELIVERY"
+            );
+        }
     }
+
     public void markDelivered() {
 
         if (!"OUT_FOR_DELIVERY".equals(status)) {
@@ -240,5 +247,11 @@ public class Order {
         }
 
         status = "DELIVERED";
+
+        if (notificationService != null) {
+            notificationService.sendNotification(
+                    "Order status changed to DELIVERED"
+            );
+        }
     }
 }
