@@ -14,6 +14,10 @@ public class Order {
     private Driver assignedDriver;
     private NotificationService notificationService;
 
+    // US4.2 - Delivery Cost
+    private double deliveryDistance;
+    private double deliveryFee;
+
     public Order(Restaurant restaurant) {
 
         if (restaurant == null) {
@@ -108,6 +112,31 @@ public class Order {
             NotificationService notificationService) {
 
         this.notificationService = notificationService;
+    }
+
+    // US4.2 - Set delivery distance and calculate delivery fee
+    public void setDeliveryDistance(double deliveryDistance) {
+
+        DeliveryCostCalculator calculator =
+                new DeliveryCostCalculator();
+
+        this.deliveryFee =
+                calculator.calculateDeliveryCost(deliveryDistance);
+
+        this.deliveryDistance = deliveryDistance;
+    }
+
+    public double getDeliveryDistance() {
+        return deliveryDistance;
+    }
+
+    public double getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    // Food total + delivery fee
+    public double getFinalBill() {
+        return getTotal() + deliveryFee;
     }
 
     public void assignDriver(Driver driver) {
@@ -211,6 +240,7 @@ public class Order {
 
         status = "CANCELLED";
     }
+
     public void markReady() {
 
         if (!"PREPARING".equals(status)) {
@@ -221,6 +251,7 @@ public class Order {
 
         status = "READY";
     }
+
     public void markOutForDelivery() {
 
         if (!"READY".equals(status)) {
@@ -231,6 +262,7 @@ public class Order {
 
         status = "OUT_FOR_DELIVERY";
     }
+
     public void markDelivered() {
 
         if (!"OUT_FOR_DELIVERY".equals(status)) {
