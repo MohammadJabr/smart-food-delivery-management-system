@@ -1,0 +1,33 @@
+package najah.edu.service;
+
+import najah.edu.domain.Order;
+import najah.edu.strategy.PricingStrategy;
+
+public class PricingService {
+
+    private final PricingStrategy pricingStrategy;
+
+    public PricingService(PricingStrategy pricingStrategy) {
+
+        if (pricingStrategy == null) {
+            throw new IllegalArgumentException(
+                    "Pricing strategy cannot be null"
+            );
+        }
+
+        this.pricingStrategy = pricingStrategy;
+    }
+
+    public double calculateFinalPrice(Order order) {
+
+        if (order == null) {
+            throw new IllegalArgumentException(
+                    "Order cannot be null"
+            );
+        }
+
+        return pricingStrategy.calculatePrice(
+                order.getFinalBill()
+        );
+    }
+}
