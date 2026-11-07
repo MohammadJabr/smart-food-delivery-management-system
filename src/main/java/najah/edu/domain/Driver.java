@@ -89,4 +89,14 @@ public class Driver {
     void markBusy() {
         status = Status.BUSY;
     }
+    public boolean canDeliverDistance(double distanceKm) {
+
+        if (distanceKm <= 0) {
+            throw new IllegalArgumentException(
+                    "Delivery distance must be greater than zero"
+            );
+        }
+
+        return true;
+    }
 }
