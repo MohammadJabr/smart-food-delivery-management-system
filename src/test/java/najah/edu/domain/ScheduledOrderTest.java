@@ -1,15 +1,19 @@
 package najah.edu.domain;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import najah.edu.service.DateTimeService;
+
 public class ScheduledOrderTest {
 
     private ScheduledOrder scheduledOrder;
+    private DateTimeService dateTimeService;
 
     @BeforeEach
     public void setUp() {
@@ -17,8 +21,10 @@ public class ScheduledOrderTest {
         Restaurant restaurant =
                 new Restaurant("Hulk Burger", true);
 
+        dateTimeService = mock(DateTimeService.class);
+
         scheduledOrder =
-                new ScheduledOrder(restaurant);
+                new ScheduledOrder(restaurant, dateTimeService);
     }
 
     @Test
@@ -33,8 +39,14 @@ public class ScheduledOrderTest {
     @Test
     public void testFutureDeliveryTimeIsAccepted() {
 
+        LocalDateTime currentTime =
+                LocalDateTime.of(2026, 11, 7, 10, 0);
+
         LocalDateTime futureTime =
-                LocalDateTime.now().plusHours(2);
+                LocalDateTime.of(2026, 11, 7, 12, 0);
+
+        when(dateTimeService.getCurrentTime())
+                .thenReturn(currentTime);
 
         scheduledOrder.setScheduledDeliveryTime(futureTime);
 
@@ -42,18 +54,28 @@ public class ScheduledOrderTest {
                 futureTime,
                 scheduledOrder.getScheduledDeliveryTime()
         );
+
+        verify(dateTimeService).getCurrentTime();
     }
 
     @Test
     public void testPastDeliveryTimeIsRejected() {
 
+        LocalDateTime currentTime =
+                LocalDateTime.of(2026, 11, 7, 10, 0);
+
         LocalDateTime pastTime =
-                LocalDateTime.now().minusHours(2);
+                LocalDateTime.of(2026, 11, 7, 8, 0);
+
+        when(dateTimeService.getCurrentTime())
+                .thenReturn(currentTime);
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> scheduledOrder.setScheduledDeliveryTime(pastTime)
         );
+
+        verify(dateTimeService).getCurrentTime();
     }
 
     @Test
@@ -63,5 +85,7 @@ public class ScheduledOrderTest {
                 IllegalArgumentException.class,
                 () -> scheduledOrder.setScheduledDeliveryTime(null)
         );
+
+        verifyNoInteractions(dateTimeService);
     }
 }
