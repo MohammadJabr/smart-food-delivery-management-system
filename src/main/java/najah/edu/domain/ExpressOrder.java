@@ -1,3 +1,4 @@
+
 package najah.edu.domain;
 
 public class ExpressOrder extends Order {
@@ -14,8 +15,8 @@ public class ExpressOrder extends Order {
     }
 
     @Override
-    public double getFinalBill() {
-        return super.getFinalBill() + EXPRESS_FEE;
+    public double getBaseFinalBill() {
+        return super.getBaseFinalBill() + EXPRESS_FEE;
     }
 
     public double getExpressFee() {

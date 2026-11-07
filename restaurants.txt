@@ -1,4 +1,4 @@
-Pizza House,true
-Burger House,false
-Palestine Kitchen,true
-Italian Restaurant,false
+Pizza House,true,Nablus,10.0
+Burger House,false,Nablus,10.0
+Palestine Kitchen,true,Nablus,10.0
+Italian Restaurant,false,Nablus,10.0

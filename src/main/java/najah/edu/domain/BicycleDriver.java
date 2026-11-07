@@ -1,3 +1,4 @@
+
 package najah.edu.domain;
 
 public class BicycleDriver extends Driver {
@@ -8,11 +9,19 @@ public class BicycleDriver extends Driver {
         super(name, status, DriverType.BICYCLE);
     }
 
+    public BicycleDriver(
+            String name,
+            Status status,
+            double distanceToRestaurantKm,
+            int estimatedArrivalMinutes) {
+
+        super(name, status, distanceToRestaurantKm,
+                estimatedArrivalMinutes, DriverType.BICYCLE);
+    }
+
     @Override
     public boolean canDeliverDistance(double distanceKm) {
-
         super.canDeliverDistance(distanceKm);
-
         return distanceKm <= MAX_DELIVERY_DISTANCE_KM;
     }
 }
