@@ -86,6 +86,9 @@ public class Order {
     public String getStatus() {
         return status;
     }
+    public OrderType getOrderType() {
+        return OrderType.STANDARD;
+    }
 
     public String getDeliveryAddress() {
         return deliveryAddress;
