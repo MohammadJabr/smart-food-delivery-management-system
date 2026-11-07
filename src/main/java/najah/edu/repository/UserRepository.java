@@ -26,15 +26,26 @@ public class UserRepository {
 
             while ((line = reader.readLine()) != null) {
 
-                String[] data = line.split(",");
+                String[] data = line.split(",", -1);
 
-                if (data.length == 3) {
+                if (data.length == 3 || data.length == 4) {
 
-                    User user = new User(
-                        data[0],
-                        data[1],
-                        data[2]
-                    );
+                    User user;
+
+                    if (data.length == 4 && !data[3].trim().isEmpty()) {
+                        user = new User(
+                                data[0],
+                                data[1],
+                                data[2],
+                                data[3]
+                        );
+                    } else {
+                        user = new User(
+                                data[0],
+                                data[1],
+                                data[2]
+                        );
+                    }
 
                     users.add(user);
                 }
@@ -42,12 +53,12 @@ public class UserRepository {
 
         } catch (FileNotFoundException e) {
             throw new IllegalStateException(
-                "Users file not found", e
+                    "Users file not found", e
             );
 
         } catch (IOException e) {
             throw new IllegalStateException(
-                "Error reading users file", e
+                    "Error reading users file", e
             );
         }
     }
@@ -61,7 +72,7 @@ public class UserRepository {
         for (User u : users) {
             if (u.getName().equals(user.getName())) {
                 throw new IllegalArgumentException(
-                    "Username already exists"
+                        "Username already exists"
                 );
             }
         }
@@ -70,9 +81,10 @@ public class UserRepository {
                 new BufferedWriter(new FileWriter(fileName, true))) {
 
             writer.write(
-                user.getName() + "," +
-                user.getpassword() + "," +
-                user.getRole()
+                    user.getName() + "," +
+                    user.getpassword() + "," +
+                    user.getRole() + "," +
+                    (user.getEmail() == null ? "" : user.getEmail())
             );
 
             writer.newLine();
@@ -81,7 +93,7 @@ public class UserRepository {
 
         } catch (IOException e) {
             throw new IllegalStateException(
-                "Error saving user", e
+                    "Error saving user", e
             );
         }
     }

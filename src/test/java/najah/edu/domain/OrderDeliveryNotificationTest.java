@@ -1,5 +1,6 @@
 package najah.edu.domain;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -7,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.Test;
 
 import najah.edu.notification.NotificationService;
+
+import najah.edu.notification.EmailService;
+import najah.edu.notification.EmailNotificationService;
 
 public class OrderDeliveryNotificationTest {
 
@@ -112,6 +116,40 @@ public class OrderDeliveryNotificationTest {
 
         verify(notificationService).sendNotification(
                 "Order status changed to DELIVERED"
+        );
+    }
+    
+    @Test
+    public void testOrderEventSendsEmailToRegisteredCustomer() {
+
+        User customer = new User(
+                "Sara",
+                "s123456",
+                "CUSTOMER",
+                "sara@example.com"
+        );
+
+        EmailService emailService = mock(EmailService.class);
+
+        Order order = new Order(
+                new Restaurant("Pizza House", true)
+        );
+
+        order.setNotificationService(
+                new EmailNotificationService(customer, emailService)
+        );
+
+        Driver driver = new Driver(
+                "Ahmad",
+                Driver.Status.AVAILABLE
+        );
+
+        order.assignDriver(driver);
+
+        verify(emailService).sendEmail(
+                "sara@example.com",
+                "Smart Food Delivery - Order Update",
+                "A driver has been assigned to your order: Ahmad"
         );
     }
 }
