@@ -1,1 +1,781 @@
-/npackage najah.edu.presentation;/n/nimport java.time.LocalDateTime;/nimport java.time.format.DateTimeFormatter;/nimport java.time.format.DateTimeParseException;/nimport java.util.ArrayList;/nimport java.util.List;/nimport java.util.Scanner;/n/nimport najah.edu.domain.MenuItem;/nimport najah.edu.domain.Order;/nimport najah.edu.domain.OrderItem;/nimport najah.edu.domain.OrderType;/nimport najah.edu.domain.Restaurant;/nimport najah.edu.domain.User;/n/nimport najah.edu.repository.MenuRepository;/nimport najah.edu.repository.OrderRepository;/nimport najah.edu.repository.RestaurantRepository;/nimport najah.edu.repository.UserRepository;/n/nimport najah.edu.service.LoginService;/nimport najah.edu.service.MenuService;/nimport najah.edu.service.OrderService;/nimport najah.edu.service.RestaurantService;/n/nimport najah.edu.domain.Driver;/nimport java.util.Arrays;/nimport najah.edu.service.PaymentService;/n/nimport najah.edu.domain.BicycleDriver;/nimport najah.edu.domain.MotorcycleDriver;/nimport najah.edu.domain.CarDriver;/nimport najah.edu.domain.ElectricVehicleDriver;/n/nimport najah.edu.service.PricingService;/n/nimport najah.edu.strategy.NormalPricingStrategy;/nimport najah.edu.strategy.PeakHourPricingStrategy;/nimport najah.edu.strategy.PromotionalPricingStrategy;/nimport najah.edu.strategy.ExpressDeliveryPricingStrategy;/nimport najah.edu.notification.EmailNotificationService;/n/npublic class MenuConsoleApp {/n/n    private static final DateTimeFormatter DATE_FORMAT =/n            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");/n/n/n public static void main(String[] args) {/n/n    try (Scanner scanner = new Scanner(System.in)) {/n/n        UserRepository userRepository =/n                new UserRepository("users.txt");/n/n        LoginService loginService =/n                new LoginService(userRepository.getUsers());/n/n        ArrayList<Restaurant> restaurants;/n/n        try {/n            RestaurantRepository restaurantRepository =/n                    new RestaurantRepository("restaurants.txt");/n/n            restaurants = restaurantRepository.getRestaurants();/n/n            MenuRepository menuRepository =/n                    new MenuRepository("menu.txt");/n/n            menuRepository.loadMenuItems(restaurants);/n/n        } catch (IllegalStateException |/n                 IllegalArgumentException e) {/n/n            System.err.println(/n                    "Could not load restaurant data: " + e.getMessage());/n            return;/n        }/n/n        OrderRepository orderRepository = new OrderRepository();/n/n        OrderService orderService =/n                new OrderService(orderRepository);/n/n        PaymentService paymentService = new PaymentService();/n/n        List<Driver> drivers = Arrays.asList(/n/n                new BicycleDriver(/n                        "Ahmad",/n                        Driver.Status.AVAILABLE,/n                        2.5,/n                        15/n                ),/n/n                new MotorcycleDriver(/n                        "Omar",/n                        Driver.Status.AVAILABLE,/n                        4.0,/n                        10/n                ),/n/n                new CarDriver(/n                        "Sara",/n                        Driver.Status.AVAILABLE,/n                        1.5,/n                        20/n                ),/n/n                new ElectricVehicleDriver(/n                        "Khaled",/n                        Driver.Status.AVAILABLE,/n                        3.0,/n                        12,/n                        25.0/n                )/n        );/n/n        while (true) {/n/n            User loggedInUser = login(scanner, loginService);/n/n            if (loggedInUser == null) {/n                return;/n            }/n/n            System.out.println("\nLogin successful!");/n            System.out.println("Welcome, " + loggedInUser.getName());/n/n            if ("CUSTOMER".equalsIgnoreCase(loggedInUser.getRole())) {/n/n            	customerMenu(/n            	        scanner,/n            	        restaurants,/n            	        orderService,/n            	        paymentService,/n            	        loggedInUser/n            	);/n/n            } else if ("MANAGER".equalsIgnoreCase(loggedInUser.getRole())) {/n/n            	ManagerConsoleApp.run(/n            	        scanner,/n            	        orderService,/n            	        drivers,/n            	        paymentService/n            	);/n/n            } else {/n/n                System.out.println("Unknown user role.");/n            }/n/n            System.out.println("\nReturning to login screen...");/n        }/n    }/n}/n/n/n    private static User login(/n            Scanner scanner,/n            LoginService loginService) {/n/n        System.out.println("================================");/n        System.out.println("   SMART FOOD DELIVERY SYSTEM");/n        System.out.println("================================");/n/n        for (int attempt = 1; attempt <= 3; attempt++) {/n/n            System.out.print("\nUsername: ");/n            String username = scanner.nextLine().trim();/n/n            System.out.print("Password: ");/n            String password = scanner.nextLine();/n/n            try {/n                return loginService.login(username, password);/n/n            } catch (SecurityException |/n                     IllegalArgumentException e) {/n/n                System.out.println("Invalid username or password.");/n                System.out.println(/n                        "Attempts remaining: " + (3 - attempt));/n            }/n        }/n/n        System.out.println("\nMaximum login attempts exceeded.");/n/n        return null;/n    }/n/n    private static void customerMenu(/n            Scanner scanner,/n            ArrayList<Restaurant> restaurants,/n            OrderService orderService,/n            PaymentService paymentService,/n            User currentCustomer)  {/n/n        List<Order> myOrders = new ArrayList<>();/n/n        boolean running = true;/n/n        while (running) {/n/n            System.out.println("\n========== CUSTOMER MENU ==========");/n            System.out.println("1. Browse Restaurants and Place Order");/n            System.out.println("2. View My Orders");/n            System.out.println("3. Cancel an Order");/n            System.out.println("4. Pay for an Order");/n            System.out.println("0. Logout");/n/n            int choice = readInt(scanner, "Choose an option: ", 0, 4);/n/n            switch (choice) {/n/n            case 1:/n            	Order order = placeOrder(/n            	        scanner,/n            	        restaurants,/n            	        orderService,/n            	        currentCustomer/n            	);/n/n                if (order != null) {/n                    myOrders.add(order);/n                }/n                break;/n/n            case 2:/n                viewOrders(myOrders, paymentService);/n                break;/n/n            case 3:/n                cancelOrder(/n                        scanner, myOrders, orderService, paymentService);/n                break;/n/n            case 4:/n                payForOrder(scanner, myOrders, paymentService);/n                break;/n/n            case 0:/n                running = false;/n                System.out.println("Logged out successfully.");/n                break;/n            }/n        }/n    }/n/n    private static Order placeOrder(/n            Scanner scanner,/n            ArrayList<Restaurant> restaurants,/n            OrderService orderService,/n            User currentCustomer) {/n/n        RestaurantService restaurantService =/n                new RestaurantService(restaurants);/n/n        List<Restaurant> availableRestaurants =/n                restaurantService.getAvailableRestaurants();/n/n        if (availableRestaurants.isEmpty()) {/n            System.out.println("No open restaurants available.");/n            return null;/n        }/n/n        System.out.println("\nAvailable Restaurants:");/n/n        for (int i = 0; i < availableRestaurants.size(); i++) {/n            System.out.println(/n                    (i + 1) + ". "/n                    + availableRestaurants.get(i).getName());/n        }/n/n        int restaurantChoice = readInt(/n                scanner,/n                "Choose a restaurant (0 to go back): ",/n                0,/n                availableRestaurants.size()/n        );/n/n        if (restaurantChoice == 0) {/n            return null;/n        }/n/n        Restaurant selectedRestaurant =/n                availableRestaurants.get(restaurantChoice - 1);/n/n        MenuService menuService = new MenuService();/n/n        List<MenuItem> availableItems =/n                menuService.getAvailableMenuItems(selectedRestaurant);/n/n        if (availableItems.isEmpty()) {/n            System.out.println("No available menu items.");/n            return null;/n        }/n/n        System.out.println(/n                "\nMenu for " + selectedRestaurant.getName());/n/n        for (int i = 0; i < availableItems.size(); i++) {/n/n            MenuItem item = availableItems.get(i);/n/n            System.out.printf(/n                    "%d. %s - %.2f%n",/n                    i + 1,/n                    item.getName(),/n                    item.getPrice()/n            );/n        }/n/n        System.out.println("\nChoose items one by one.");/n        System.out.println("Enter 0 when finished.");/n/n        int typeChoice = readInt(/n                scanner,/n                "\nOrder Type (1 Standard, 2 Express, 3 Scheduled): ",/n                1,/n                3/n        );/n/n        OrderType orderType;/n/n        switch (typeChoice) {/n            case 1:/n                orderType = OrderType.STANDARD;/n                break;/n            case 2:/n                orderType = OrderType.EXPRESS;/n                break;/n            default:/n                orderType = OrderType.SCHEDULED;/n                break;/n        }/n/n        Order order = orderService.createOrder(/n                selectedRestaurant, orderType);/n/n        int selectedCount = 0;/n/n        while (true) {/n/n            int itemChoice = readInt(/n                    scanner,/n                    "\nChoose item number (0 to finish): ",/n                    0,/n                    availableItems.size()/n            );/n/n            if (itemChoice == 0) {/n                break;/n            }/n/n            int quantity = readInt(/n                    scanner,/n                    "Enter quantity: ",/n                    1,/n                    99/n            );/n/n            try {/n/n                MenuItem selectedItem =/n                        availableItems.get(itemChoice - 1);/n/n                orderService.addItem(/n                        order, selectedItem, quantity);/n/n                selectedCount++;/n/n                System.out.println("Item added successfully.");/n/n            } catch (IllegalArgumentException e) {/n                System.out.println(e.getMessage());/n            }/n        }/n/n        if (selectedCount == 0) {/n            System.out.println("No items selected. Order cancelled.");/n            return null;/n        }/n/n        System.out.print("\nDelivery Address: ");/n        String address = scanner.nextLine().trim();/n/n        double distance = readDouble(/n                scanner,/n                "Delivery Distance in KM: "/n        );/n/n        try {/n/n            orderService.setDeliveryDetails(/n                    order, address, distance);/n/n            if (orderType == OrderType.SCHEDULED) {/n/n                LocalDateTime deliveryTime =/n                        readScheduledTime(scanner);/n/n                orderService.setScheduledDeliveryTime(/n                        order, deliveryTime);/n            }/n/n            PricingService pricingService =/n                    choosePricingService(scanner, orderType);/n/n            double finalPrice =/n                    pricingService.calculateFinalPrice(order);/n/n            order.setPricedFinalBill(finalPrice);/n/n            configureOrderNotifications(/n                    scanner,/n                    currentCustomer,/n                    order/n            );/n/n            orderService.placeOrder(order);/n/n            System.out.println("\nOrder placed successfully!");/n/n            displayReceipt(order, orderService);/n/n            return order;/n/n        } catch (IllegalArgumentException |/n                 IllegalStateException e) {/n/n            System.out.println(/n                    "\nCould not place order: " + e.getMessage());/n/n            return null;/n        }/n    }/n/n    private static LocalDateTime readScheduledTime(/n            Scanner scanner) {/n/n        while (true) {/n/n            System.out.print(/n                    "Scheduled Delivery (yyyy-MM-dd HH:mm): ");/n/n            String input = scanner.nextLine().trim();/n/n            try {/n                return LocalDateTime.parse(input, DATE_FORMAT);/n/n            } catch (DateTimeParseException e) {/n                System.out.println(/n                        "Invalid date format. Example: 2026-11-08 18:30");/n            }/n        }/n    }/n/n    private static void displayReceipt(/n            Order order,/n            OrderService orderService) {/n/n        System.out.println("\n========== ORDER RECEIPT ==========");/n/n        System.out.println(/n                "Restaurant: " + order.getRestaurant().getName());/n/n        System.out.println(/n                "Order Type: " + order.getOrderType());/n/n        System.out.println("\nItems:");/n/n        for (OrderItem item : order.getItems()) {/n/n            System.out.printf(/n                    "%s x%d = %.2f%n",/n                    item.getMenuItem().getName(),/n                    item.getQuantity(),/n                    item.getSubtotal()/n            );/n        }/n/n        System.out.printf(/n                "\nFood Total: %.2f%n",/n                order.getTotal());/n/n        System.out.printf(/n                "Delivery Fee: %.2f%n",/n                order.getDeliveryFee());/n/n        System.out.printf(/n                "Final Bill: %.2f%n",/n                order.getFinalBill());/n/n        System.out.println(/n                "Delivery Address: " + order.getDeliveryAddress());/n/n        System.out.println(/n                "Status: " + order.getStatus());/n/n        if (order instanceof najah.edu.domain.ScheduledOrder) {/n/n            najah.edu.domain.ScheduledOrder scheduledOrder =/n                    (najah.edu.domain.ScheduledOrder) order;/n/n            System.out.println(/n                    "Scheduled Time: "/n                    + scheduledOrder.getScheduledDeliveryTime());/n        }/n/n        System.out.println("===================================");/n        System.out.println(/n                "Your Order Number: "/n                + orderService.getAllOrders().size());/n    }/n/n    private static void viewOrders(/n            List<Order> orders,/n            PaymentService paymentService) {/n/n        if (orders.isEmpty()) {/n            System.out.println("You have no orders yet.");/n            return;/n        }/n/n        System.out.println("\n========== MY ORDERS ==========");/n/n        for (int i = 0; i < orders.size(); i++) {/n/n            Order order = orders.get(i);/n/n            System.out.printf(/n                    "%d. %s | %s | %.2f | %s%n",/n                    i + 1,/n                    order.getRestaurant().getName(),/n                    order.getOrderType(),/n                    order.getFinalBill(),/n                    order.getStatus()/n            );/n        }/n    }/n/n/nprivate static void configureOrderNotifications(/n        Scanner scanner,/n        User customer,/n        Order order) {/n/n    String recipientEmail = customer.getEmail();/n/n    if (recipientEmail == null || recipientEmail.trim().isEmpty()) {/n/n        System.out.print(/n                "Enter email for order notifications: ");/n/n        recipientEmail = scanner.nextLine().trim();/n    }/n/n    if (recipientEmail.isEmpty()) {/n        System.out.println("Email notifications disabled.");/n        return;/n    }/n/n    try {/n/n    	EmailNotificationService notificationService =/n    	        new EmailNotificationService(recipientEmail);/n/n        order.addObserver(notificationService);/n/n        System.out.println("Email notifications enabled.");/n/n    } catch (IllegalArgumentException |/n             IllegalStateException e) {/n/n        System.out.println(/n                "Could not enable email notifications: "/n                + e.getMessage());/n    }/n}/n/n/n    private static void cancelOrder(/n            Scanner scanner,/n            List<Order> orders,/n            OrderService orderService,/n            PaymentService paymentService) {/n/n        if (orders.isEmpty()) {/n            System.out.println("You have no orders to cancel.");/n            return;/n        }/n/n        viewOrders(orders, paymentService);/n/n        int choice = readInt(/n                scanner,/n                "Enter order number to cancel (0 to go back): ",/n                0,/n                orders.size()/n        );/n/n        if (choice == 0) {/n            return;/n        }/n/n        try {/n/n            orderService.cancelOrder(/n                    orders.get(choice - 1));/n/n            System.out.println("Order cancelled successfully.");/n/n        } catch (IllegalStateException e) {/n/n            System.out.println(/n                    "Cannot cancel order: " + e.getMessage());/n        }/n    }/n/n    private static int readInt(/n            Scanner scanner,/n            String message,/n            int min,/n            int max) {/n/n        while (true) {/n/n            System.out.print(message);/n/n            String input = scanner.nextLine().trim();/n/n            try {/n/n                int value = Integer.parseInt(input);/n/n                if (value >= min && value <= max) {/n                    return value;/n                }/n/n            } catch (NumberFormatException e) {/n                // Ask again./n            }/n/n            System.out.println(/n                    "Invalid input. Enter a number between "/n                    + min + " and " + max + ".");/n        }/n    }/n/n    private static double readDouble(/n            Scanner scanner,/n            String message) {/n/n        while (true) {/n/n            System.out.print(message);/n/n            String input = scanner.nextLine().trim();/n/n            try {/n/n                double value = Double.parseDouble(input);/n/n                if (Double.isFinite(value) && value > 0) {/n                    return value;/n                }/n/n            } catch (NumberFormatException e) {/n                // Ask again./n            }/n/n            System.out.println(/n                    "Please enter a valid positive number.");/n        }/n    }/n/n/nprivate static PricingService choosePricingService(/n        Scanner scanner,/n        OrderType orderType) {/n/n    System.out.println("\nChoose Pricing Strategy:");/n    System.out.println("1. Normal Pricing");/n    System.out.println("2. Peak Hour Pricing (+20%)");/n    System.out.println("3. Promotional Pricing (-20%)");/n/n    if (orderType == OrderType.STANDARD) {/n        System.out.println("4. Express Delivery Pricing (+8.00)");/n    }/n/n    int maxChoice =/n            orderType == OrderType.STANDARD ? 4 : 3;/n/n    int choice = readInt(/n            scanner,/n            "Choose pricing strategy: ",/n            1,/n            maxChoice/n    );/n/n    switch (choice) {/n/n        case 1:/n            return new PricingService(/n                    new NormalPricingStrategy());/n/n        case 2:/n            return new PricingService(/n                    new PeakHourPricingStrategy(0.20));/n/n        case 3:/n            return new PricingService(/n                    new PromotionalPricingStrategy(0.20));/n/n        case 4:/n            return new PricingService(/n                    new ExpressDeliveryPricingStrategy(8.0));/n/n        default:/n            throw new IllegalArgumentException(/n                    "Invalid pricing strategy");/n    }/n}/n/n/n    private static void payForOrder(/n            Scanner scanner,/n            List<Order> orders,/n            PaymentService paymentService) {/n/n        if (orders.isEmpty()) {/n            System.out.println("You have no orders.");/n            return;/n        }/n/n        viewOrders(orders, paymentService);/n/n        int choice = readInt(/n                scanner,/n                "Choose order number (0 to go back): ",/n                0,/n                orders.size()/n        );/n/n        if (choice == 0) {/n            return;/n        }/n/n        Order order = orders.get(choice - 1);/n/n        if (paymentService.isPaid(order)) {/n            System.out.println("This order has already been paid.");/n            return;/n        }/n/n        System.out.printf(/n                "Amount due: %.2f%n",/n                order.getFinalBill());/n/n        double amount = readDouble(/n                scanner,/n                "Enter cash payment amount: ");/n/n        try {/n/n            paymentService.processCashPayment(order, amount);/n/n            System.out.println("Payment successful!");/n            System.out.println("Payment Status: PAID");/n/n        } catch (IllegalArgumentException |/n                 IllegalStateException e) {/n/n            System.out.println("Payment failed: " + e.getMessage());/n        }/n    }/n}/n
+
+package najah.edu.presentation;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+import najah.edu.domain.MenuItem;
+import najah.edu.domain.Order;
+import najah.edu.domain.OrderItem;
+import najah.edu.domain.OrderType;
+import najah.edu.domain.Restaurant;
+import najah.edu.domain.User;
+
+import najah.edu.repository.MenuRepository;
+import najah.edu.repository.OrderRepository;
+import najah.edu.repository.RestaurantRepository;
+import najah.edu.repository.UserRepository;
+
+import najah.edu.service.LoginService;
+import najah.edu.service.MenuService;
+import najah.edu.service.OrderService;
+import najah.edu.service.RestaurantService;
+
+import najah.edu.domain.Driver;
+import java.util.Arrays;
+import najah.edu.service.PaymentService;
+
+import najah.edu.domain.BicycleDriver;
+import najah.edu.domain.MotorcycleDriver;
+import najah.edu.domain.CarDriver;
+import najah.edu.domain.ElectricVehicleDriver;
+
+import najah.edu.service.PricingService;
+
+import najah.edu.strategy.NormalPricingStrategy;
+import najah.edu.strategy.PeakHourPricingStrategy;
+import najah.edu.strategy.PromotionalPricingStrategy;
+import najah.edu.strategy.ExpressDeliveryPricingStrategy;
+import najah.edu.notification.EmailNotificationService;
+
+public class MenuConsoleApp {
+
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+
+ public static void main(String[] args) {
+
+    try (Scanner scanner = new Scanner(System.in)) {
+
+        UserRepository userRepository =
+                new UserRepository("users.txt");
+
+        LoginService loginService =
+                new LoginService(userRepository.getUsers());
+
+        ArrayList<Restaurant> restaurants;
+
+        try {
+            RestaurantRepository restaurantRepository =
+                    new RestaurantRepository("restaurants.txt");
+
+            restaurants = restaurantRepository.getRestaurants();
+
+            MenuRepository menuRepository =
+                    new MenuRepository("menu.txt");
+
+            menuRepository.loadMenuItems(restaurants);
+
+        } catch (IllegalStateException |
+                 IllegalArgumentException e) {
+
+            System.err.println(
+                    "Could not load restaurant data: " + e.getMessage());
+            return;
+        }
+
+        OrderRepository orderRepository = new OrderRepository();
+
+        OrderService orderService =
+                new OrderService(orderRepository);
+
+        PaymentService paymentService = new PaymentService();
+
+        List<Driver> drivers = Arrays.asList(
+
+                new BicycleDriver(
+                        "Ahmad",
+                        Driver.Status.AVAILABLE,
+                        2.5,
+                        15
+                ),
+
+                new MotorcycleDriver(
+                        "Omar",
+                        Driver.Status.AVAILABLE,
+                        4.0,
+                        10
+                ),
+
+                new CarDriver(
+                        "Sara",
+                        Driver.Status.AVAILABLE,
+                        1.5,
+                        20
+                ),
+
+                new ElectricVehicleDriver(
+                        "Khaled",
+                        Driver.Status.AVAILABLE,
+                        3.0,
+                        12,
+                        25.0
+                )
+        );
+
+        while (true) {
+
+            User loggedInUser = login(scanner, loginService);
+
+            if (loggedInUser == null) {
+                return;
+            }
+
+            System.out.println("\nLogin successful!");
+            System.out.println("Welcome, " + loggedInUser.getName());
+
+            if ("CUSTOMER".equalsIgnoreCase(loggedInUser.getRole())) {
+
+            	customerMenu(
+            	        scanner,
+            	        restaurants,
+            	        orderService,
+            	        paymentService,
+            	        loggedInUser
+            	);
+
+            } else if ("MANAGER".equalsIgnoreCase(loggedInUser.getRole())) {
+
+            	ManagerConsoleApp.run(
+            	        scanner,
+            	        orderService,
+            	        drivers,
+            	        paymentService
+            	);
+
+            } else {
+
+                System.out.println("Unknown user role.");
+            }
+
+            System.out.println("\nReturning to login screen...");
+        }
+    }
+}
+
+
+    private static User login(
+            Scanner scanner,
+            LoginService loginService) {
+
+        System.out.println("================================");
+        System.out.println("   SMART FOOD DELIVERY SYSTEM");
+        System.out.println("================================");
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+
+            System.out.print("\nUsername: ");
+            String username = scanner.nextLine().trim();
+
+            System.out.print("Password: ");
+            String password = scanner.nextLine();
+
+            try {
+                return loginService.login(username, password);
+
+            } catch (SecurityException |
+                     IllegalArgumentException e) {
+
+                System.out.println("Invalid username or password.");
+                System.out.println(
+                        "Attempts remaining: " + (3 - attempt));
+            }
+        }
+
+        System.out.println("\nMaximum login attempts exceeded.");
+
+        return null;
+    }
+
+    private static void customerMenu(
+            Scanner scanner,
+            ArrayList<Restaurant> restaurants,
+            OrderService orderService,
+            PaymentService paymentService,
+            User currentCustomer)  {
+
+        List<Order> myOrders = new ArrayList<>();
+
+        boolean running = true;
+
+        while (running) {
+
+            System.out.println("\n========== CUSTOMER MENU ==========");
+            System.out.println("1. Browse Restaurants and Place Order");
+            System.out.println("2. View My Orders");
+            System.out.println("3. Cancel an Order");
+            System.out.println("4. Pay for an Order");
+            System.out.println("0. Logout");
+
+            int choice = readInt(scanner, "Choose an option: ", 0, 4);
+
+            switch (choice) {
+
+            case 1:
+            	Order order = placeOrder(
+            	        scanner,
+            	        restaurants,
+            	        orderService,
+            	        currentCustomer
+            	);
+
+                if (order != null) {
+                    myOrders.add(order);
+                }
+                break;
+
+            case 2:
+                viewOrders(myOrders, paymentService);
+                break;
+
+            case 3:
+                cancelOrder(
+                        scanner, myOrders, orderService, paymentService);
+                break;
+
+            case 4:
+                payForOrder(scanner, myOrders, paymentService);
+                break;
+
+            case 0:
+                running = false;
+                System.out.println("Logged out successfully.");
+                break;
+            }
+        }
+    }
+
+    private static Order placeOrder(
+            Scanner scanner,
+            ArrayList<Restaurant> restaurants,
+            OrderService orderService,
+            User currentCustomer) {
+
+        RestaurantService restaurantService =
+                new RestaurantService(restaurants);
+
+        List<Restaurant> availableRestaurants =
+                restaurantService.getAvailableRestaurants();
+
+        if (availableRestaurants.isEmpty()) {
+            System.out.println("No open restaurants available.");
+            return null;
+        }
+
+        System.out.println("\nAvailable Restaurants:");
+
+        for (int i = 0; i < availableRestaurants.size(); i++) {
+            System.out.println(
+                    (i + 1) + ". "
+                    + availableRestaurants.get(i).getName());
+        }
+
+        int restaurantChoice = readInt(
+                scanner,
+                "Choose a restaurant (0 to go back): ",
+                0,
+                availableRestaurants.size()
+        );
+
+        if (restaurantChoice == 0) {
+            return null;
+        }
+
+        Restaurant selectedRestaurant =
+                availableRestaurants.get(restaurantChoice - 1);
+
+        MenuService menuService = new MenuService();
+
+        List<MenuItem> availableItems =
+                menuService.getAvailableMenuItems(selectedRestaurant);
+
+        if (availableItems.isEmpty()) {
+            System.out.println("No available menu items.");
+            return null;
+        }
+
+        System.out.println(
+                "\nMenu for " + selectedRestaurant.getName());
+
+        for (int i = 0; i < availableItems.size(); i++) {
+
+            MenuItem item = availableItems.get(i);
+
+            System.out.printf(
+                    "%d. %s - %.2f%n",
+                    i + 1,
+                    item.getName(),
+                    item.getPrice()
+            );
+        }
+
+        System.out.println("\nChoose items one by one.");
+        System.out.println("Enter 0 when finished.");
+
+        int typeChoice = readInt(
+                scanner,
+                "\nOrder Type (1 Standard, 2 Express, 3 Scheduled): ",
+                1,
+                3
+        );
+
+        OrderType orderType;
+
+        switch (typeChoice) {
+            case 1:
+                orderType = OrderType.STANDARD;
+                break;
+            case 2:
+                orderType = OrderType.EXPRESS;
+                break;
+            default:
+                orderType = OrderType.SCHEDULED;
+                break;
+        }
+
+        Order order = orderService.createOrder(
+                selectedRestaurant, orderType);
+
+        int selectedCount = 0;
+
+        while (true) {
+
+            int itemChoice = readInt(
+                    scanner,
+                    "\nChoose item number (0 to finish): ",
+                    0,
+                    availableItems.size()
+            );
+
+            if (itemChoice == 0) {
+                break;
+            }
+
+            int quantity = readInt(
+                    scanner,
+                    "Enter quantity: ",
+                    1,
+                    99
+            );
+
+            try {
+
+                MenuItem selectedItem =
+                        availableItems.get(itemChoice - 1);
+
+                orderService.addItem(
+                        order, selectedItem, quantity);
+
+                selectedCount++;
+
+                System.out.println("Item added successfully.");
+
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        if (selectedCount == 0) {
+            System.out.println("No items selected. Order cancelled.");
+            return null;
+        }
+
+        System.out.print("\nDelivery Address: ");
+        String address = scanner.nextLine().trim();
+
+        double distance = readDouble(
+                scanner,
+                "Delivery Distance in KM: "
+        );
+
+        try {
+
+            orderService.setDeliveryDetails(
+                    order, address, distance);
+
+            if (orderType == OrderType.SCHEDULED) {
+
+                LocalDateTime deliveryTime =
+                        readScheduledTime(scanner);
+
+                orderService.setScheduledDeliveryTime(
+                        order, deliveryTime);
+            }
+
+            PricingService pricingService =
+                    choosePricingService(scanner, orderType);
+
+            double finalPrice =
+                    pricingService.calculateFinalPrice(order);
+
+            order.setPricedFinalBill(finalPrice);
+
+            configureOrderNotifications(
+                    scanner,
+                    currentCustomer,
+                    order
+            );
+
+            orderService.placeOrder(order);
+
+            System.out.println("\nOrder placed successfully!");
+
+            displayReceipt(order, orderService);
+
+            return order;
+
+        } catch (IllegalArgumentException |
+                 IllegalStateException e) {
+
+            System.out.println(
+                    "\nCould not place order: " + e.getMessage());
+
+            return null;
+        }
+    }
+
+    private static LocalDateTime readScheduledTime(
+            Scanner scanner) {
+
+        while (true) {
+
+            System.out.print(
+                    "Scheduled Delivery (yyyy-MM-dd HH:mm): ");
+
+            String input = scanner.nextLine().trim();
+
+            try {
+                return LocalDateTime.parse(input, DATE_FORMAT);
+
+            } catch (DateTimeParseException e) {
+                System.out.println(
+                        "Invalid date format. Example: 2026-11-08 18:30");
+            }
+        }
+    }
+
+    private static void displayReceipt(
+            Order order,
+            OrderService orderService) {
+
+        System.out.println("\n========== ORDER RECEIPT ==========");
+
+        System.out.println(
+                "Restaurant: " + order.getRestaurant().getName());
+
+        System.out.println(
+                "Order Type: " + order.getOrderType());
+
+        System.out.println("\nItems:");
+
+        for (OrderItem item : order.getItems()) {
+
+            System.out.printf(
+                    "%s x%d = %.2f%n",
+                    item.getMenuItem().getName(),
+                    item.getQuantity(),
+                    item.getSubtotal()
+            );
+        }
+
+        System.out.printf(
+                "\nFood Total: %.2f%n",
+                order.getTotal());
+
+        System.out.printf(
+                "Delivery Fee: %.2f%n",
+                order.getDeliveryFee());
+
+        System.out.printf(
+                "Final Bill: %.2f%n",
+                order.getFinalBill());
+
+        System.out.println(
+                "Delivery Address: " + order.getDeliveryAddress());
+
+        System.out.println(
+                "Status: " + order.getStatus());
+
+        if (order instanceof najah.edu.domain.ScheduledOrder) {
+
+            najah.edu.domain.ScheduledOrder scheduledOrder =
+                    (najah.edu.domain.ScheduledOrder) order;
+
+            System.out.println(
+                    "Scheduled Time: "
+                    + scheduledOrder.getScheduledDeliveryTime());
+        }
+
+        System.out.println("===================================");
+        System.out.println(
+                "Your Order Number: "
+                + orderService.getAllOrders().size());
+    }
+
+    private static void viewOrders(
+            List<Order> orders,
+            PaymentService paymentService) {
+
+        if (orders.isEmpty()) {
+            System.out.println("You have no orders yet.");
+            return;
+        }
+
+        System.out.println("\n========== MY ORDERS ==========");
+
+        for (int i = 0; i < orders.size(); i++) {
+
+            Order order = orders.get(i);
+
+            System.out.printf(
+                    "%d. %s | %s | %.2f | %s%n",
+                    i + 1,
+                    order.getRestaurant().getName(),
+                    order.getOrderType(),
+                    order.getFinalBill(),
+                    order.getStatus()
+            );
+        }
+    }
+
+
+private static void configureOrderNotifications(
+        Scanner scanner,
+        User customer,
+        Order order) {
+
+    String recipientEmail = customer.getEmail();
+
+    if (recipientEmail == null || recipientEmail.trim().isEmpty()) {
+
+        System.out.print(
+                "Enter email for order notifications: ");
+
+        recipientEmail = scanner.nextLine().trim();
+    }
+
+    if (recipientEmail.isEmpty()) {
+        System.out.println("Email notifications disabled.");
+        return;
+    }
+
+    try {
+
+    	EmailNotificationService notificationService =
+    	        new EmailNotificationService(recipientEmail);
+
+        order.addObserver(notificationService);
+
+        System.out.println("Email notifications enabled.");
+
+    } catch (IllegalArgumentException |
+             IllegalStateException e) {
+
+        System.out.println(
+                "Could not enable email notifications: "
+                + e.getMessage());
+    }
+}
+
+
+    private static void cancelOrder(
+            Scanner scanner,
+            List<Order> orders,
+            OrderService orderService,
+            PaymentService paymentService) {
+
+        if (orders.isEmpty()) {
+            System.out.println("You have no orders to cancel.");
+            return;
+        }
+
+        viewOrders(orders, paymentService);
+
+        int choice = readInt(
+                scanner,
+                "Enter order number to cancel (0 to go back): ",
+                0,
+                orders.size()
+        );
+
+        if (choice == 0) {
+            return;
+        }
+
+        try {
+
+            orderService.cancelOrder(
+                    orders.get(choice - 1));
+
+            System.out.println("Order cancelled successfully.");
+
+        } catch (IllegalStateException e) {
+
+            System.out.println(
+                    "Cannot cancel order: " + e.getMessage());
+        }
+    }
+
+    private static int readInt(
+            Scanner scanner,
+            String message,
+            int min,
+            int max) {
+
+        while (true) {
+
+            System.out.print(message);
+
+            String input = scanner.nextLine().trim();
+
+            try {
+
+                int value = Integer.parseInt(input);
+
+                if (value >= min && value <= max) {
+                    return value;
+                }
+
+            } catch (NumberFormatException e) {
+                // Ask again.
+            }
+
+            System.out.println(
+                    "Invalid input. Enter a number between "
+                    + min + " and " + max + ".");
+        }
+    }
+
+    private static double readDouble(
+            Scanner scanner,
+            String message) {
+
+        while (true) {
+
+            System.out.print(message);
+
+            String input = scanner.nextLine().trim();
+
+            try {
+
+                double value = Double.parseDouble(input);
+
+                if (Double.isFinite(value) && value > 0) {
+                    return value;
+                }
+
+            } catch (NumberFormatException e) {
+                // Ask again.
+            }
+
+            System.out.println(
+                    "Please enter a valid positive number.");
+        }
+    }
+
+
+private static PricingService choosePricingService(
+        Scanner scanner,
+        OrderType orderType) {
+
+    System.out.println("\nChoose Pricing Strategy:");
+    System.out.println("1. Normal Pricing");
+    System.out.println("2. Peak Hour Pricing (+20%)");
+    System.out.println("3. Promotional Pricing (-20%)");
+
+    if (orderType == OrderType.STANDARD) {
+        System.out.println("4. Express Delivery Pricing (+8.00)");
+    }
+
+    int maxChoice =
+            orderType == OrderType.STANDARD ? 4 : 3;
+
+    int choice = readInt(
+            scanner,
+            "Choose pricing strategy: ",
+            1,
+            maxChoice
+    );
+
+    switch (choice) {
+
+        case 1:
+            return new PricingService(
+                    new NormalPricingStrategy());
+
+        case 2:
+            return new PricingService(
+                    new PeakHourPricingStrategy(0.20));
+
+        case 3:
+            return new PricingService(
+                    new PromotionalPricingStrategy(0.20));
+
+        case 4:
+            return new PricingService(
+                    new ExpressDeliveryPricingStrategy(8.0));
+
+        default:
+            throw new IllegalArgumentException(
+                    "Invalid pricing strategy");
+    }
+}
+
+
+    private static void payForOrder(
+            Scanner scanner,
+            List<Order> orders,
+            PaymentService paymentService) {
+
+        if (orders.isEmpty()) {
+            System.out.println("You have no orders.");
+            return;
+        }
+
+        viewOrders(orders, paymentService);
+
+        int choice = readInt(
+                scanner,
+                "Choose order number (0 to go back): ",
+                0,
+                orders.size()
+        );
+
+        if (choice == 0) {
+            return;
+        }
+
+        Order order = orders.get(choice - 1);
+
+        if (paymentService.isPaid(order)) {
+            System.out.println("This order has already been paid.");
+            return;
+        }
+
+        System.out.printf(
+                "Amount due: %.2f%n",
+                order.getFinalBill());
+
+        double amount = readDouble(
+                scanner,
+                "Enter cash payment amount: ");
+
+        try {
+
+            paymentService.processCashPayment(order, amount);
+
+            System.out.println("Payment successful!");
+            System.out.println("Payment Status: PAID");
+
+        } catch (IllegalArgumentException |
+                 IllegalStateException e) {
+
+            System.out.println("Payment failed: " + e.getMessage());
+        }
+    }
+}
