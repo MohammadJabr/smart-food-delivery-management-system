@@ -1,6 +1,7 @@
 package najah.edu.payment;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,32 +33,23 @@ public class CashPaymentTest {
 
         order = new Order(restaurant);
 
-        // 2 burgers = 40
         order.addItem(burger, 2);
-
-        // Delivery: 5 km × 2 = 10
         order.setDeliveryDistance(5.0);
-
-        // Final Bill = 40 + 10 = 50
     }
 
     @Test
     public void testPaymentInitiallyNotPaid() {
-
         assertFalse(cashPayment.isPaid());
     }
 
     @Test
     public void testValidCashPayment() {
-
         cashPayment.processPayment(order, 50.0);
-
         assertTrue(cashPayment.isPaid());
     }
 
     @Test
     public void testZeroPaymentIsRejected() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> cashPayment.processPayment(order, 0)
@@ -68,7 +60,6 @@ public class CashPaymentTest {
 
     @Test
     public void testNegativePaymentIsRejected() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> cashPayment.processPayment(order, -10.0)
@@ -79,8 +70,6 @@ public class CashPaymentTest {
 
     @Test
     public void testPaymentLessThanFinalBillIsRejected() {
-
-        // Required = 50, customer pays 40
         assertThrows(
                 IllegalArgumentException.class,
                 () -> cashPayment.processPayment(order, 40.0)
@@ -91,8 +80,6 @@ public class CashPaymentTest {
 
     @Test
     public void testPaymentGreaterThanFinalBillIsRejected() {
-
-        // Required = 50, customer pays 70
         assertThrows(
                 IllegalArgumentException.class,
                 () -> cashPayment.processPayment(order, 70.0)
@@ -103,12 +90,27 @@ public class CashPaymentTest {
 
     @Test
     public void testNullOrderIsRejected() {
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> cashPayment.processPayment(null, 50.0)
         );
 
         assertFalse(cashPayment.isPaid());
+    }
+
+    @Test
+    public void testCashPaymentUsingMockOrder() {
+
+        Order mockOrder = mock(Order.class);
+
+        when(mockOrder.getFinalBill()).thenReturn(50.0);
+
+        CashPayment payment = new CashPayment();
+
+        payment.processPayment(mockOrder, 50.0);
+
+        assertTrue(payment.isPaid());
+
+        verify(mockOrder).getFinalBill();
     }
 }
