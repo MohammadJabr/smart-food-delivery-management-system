@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.mockito.Mockito.*;
+
+import najah.edu.strategy.DeliveryCostStrategy;
+
 public class DeliveryCostTest {
 
     private Order order;
@@ -69,4 +73,29 @@ public class DeliveryCostTest {
                 () -> order.setDeliveryDistance(-5)
         );
     }
+    @Test
+    public void testInjectedDeliveryCostStrategyIsUsed() {
+
+        DeliveryCostStrategy strategy =
+                mock(DeliveryCostStrategy.class);
+
+        when(strategy.calculateCost(5.0)).thenReturn(17.5);
+
+        Order strategyOrder =
+                new Order(order.getRestaurant(), strategy);
+
+        strategyOrder.setDeliveryDistance(5.0);
+
+        assertEquals(17.5, strategyOrder.getDeliveryFee(), 0.001);
+        verify(strategy).calculateCost(5.0);
+    }
+
+    @Test
+    public void testNonFiniteDistanceIsRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> order.setDeliveryDistance(Double.NaN)
+        );
+    }
+
 }
