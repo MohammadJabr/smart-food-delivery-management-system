@@ -1,17 +1,39 @@
 package najah.edu.domain;
 
+import najah.edu.strategy.DeliveryCostStrategy;
+import najah.edu.strategy.DistanceBasedDeliveryCostStrategy;
+
 public class DeliveryCostCalculator {
 
-    private static final double COST_PER_KM = 2.0;
+    private final DeliveryCostStrategy strategy;
+
+    public DeliveryCostCalculator() {
+        this(new DistanceBasedDeliveryCostStrategy());
+    }
+
+    public DeliveryCostCalculator(DeliveryCostStrategy strategy) {
+        if (strategy == null) {
+            throw new IllegalArgumentException(
+                    "Delivery cost strategy cannot be null");
+        }
+
+        this.strategy = strategy;
+    }
 
     public double calculateDeliveryCost(double distance) {
 
-        if (distance <= 0) {
+        if (!Double.isFinite(distance) || distance <= 0) {
             throw new IllegalArgumentException(
-                    "Distance must be greater than zero"
-            );
+                    "Distance must be greater than zero and finite");
         }
 
-        return distance * COST_PER_KM;
+        double cost = strategy.calculateCost(distance);
+
+        if (!Double.isFinite(cost) || cost < 0) {
+            throw new IllegalArgumentException(
+                    "Delivery cost must be non-negative and finite");
+        }
+
+        return cost;
     }
 }
