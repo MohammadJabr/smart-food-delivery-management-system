@@ -8,6 +8,9 @@ import java.util.List;
 import najah.edu.notification.NotificationService;
 
 import najah.edu.notification.OrderObserver;
+
+import najah.edu.strategy.DeliveryCostStrategy;
+import najah.edu.strategy.DistanceBasedDeliveryCostStrategy;
 /**
  * Represents a customer food order in the Smart Food Delivery System.
  *
@@ -55,6 +58,9 @@ public class Order {
     /** The final bill after applying a pricing strategy. */
     private Double pricedFinalBill;
 
+    /** Strategy used to calculate this order's delivery fee. */
+    private final DeliveryCostCalculator deliveryCostCalculator;
+
     /**
      * Creates a new order for the specified restaurant.
      *
@@ -65,6 +71,19 @@ public class Order {
      * @throws IllegalArgumentException if the restaurant is null or closed
      */
     public Order(Restaurant restaurant) {
+        this(restaurant, new DistanceBasedDeliveryCostStrategy());
+    }
+
+    /**
+     * Creates an order using the supplied delivery-cost strategy.
+     *
+     * @param restaurant the restaurant for this order
+     * @param deliveryCostStrategy the strategy used to calculate delivery fees
+     * @throws IllegalArgumentException if the restaurant or strategy is invalid
+     */
+    public Order(
+            Restaurant restaurant,
+            DeliveryCostStrategy deliveryCostStrategy) {
 
         if (restaurant == null) {
             throw new IllegalArgumentException(
@@ -78,10 +97,21 @@ public class Order {
             );
         }
 
+        if (deliveryCostStrategy == null) {
+            throw new IllegalArgumentException(
+                    "Delivery cost strategy cannot be null"
+            );
+        }
+
         this.restaurant = restaurant;
         this.items = new ArrayList<>();
         this.status = "DRAFT";
         this.assignedDriver = null;
+        this.deliveryCostCalculator =
+                new DeliveryCostCalculator(deliveryCostStrategy);
+
+        // The restaurant observes every update to its order.
+        addObserver(restaurant);
     }
 
     /**
@@ -96,6 +126,7 @@ public class Order {
      *         does not belong to the restaurant, or has an invalid quantity
      */
     public void addItem(MenuItem menuItem, int quantity) {
+        ensureNotDelivered();
 
         if (menuItem == null) {
             throw new IllegalArgumentException(
@@ -198,6 +229,7 @@ public class Order {
      * @throws IllegalArgumentException if the address is null or empty
      */
     public void setDeliveryAddress(String deliveryAddress) {
+        ensureNotDelivered();
 
         if (deliveryAddress == null ||
                 deliveryAddress.trim().isEmpty()) {
@@ -242,13 +274,12 @@ public class Order {
      * @throws IllegalArgumentException if the delivery distance is invalid
      */
     public void setDeliveryDistance(double deliveryDistance) {
+        ensureNotDelivered();
 
-        DeliveryCostCalculator calculator =
-                new DeliveryCostCalculator();
+        double calculatedFee =
+                deliveryCostCalculator.calculateDeliveryCost(deliveryDistance);
 
-        this.deliveryFee =
-                calculator.calculateDeliveryCost(deliveryDistance);
-
+        this.deliveryFee = calculatedFee;
         this.deliveryDistance = deliveryDistance;
     }
 
@@ -301,6 +332,7 @@ public double getFinalBill() {
  * @throws IllegalArgumentException if the amount is invalid
  */
 public void setPricedFinalBill(double finalBill) {
+        ensureNotDelivered();
 
     if (!Double.isFinite(finalBill) || finalBill < 0) {
         throw new IllegalArgumentException(
@@ -324,6 +356,7 @@ public void setPricedFinalBill(double finalBill) {
      * @throws IllegalStateException if a driver is already assigned
      */
     public void assignDriver(Driver driver) {
+        ensureNotDelivered();
 
         if (driver == null) {
             throw new IllegalArgumentException(
@@ -345,7 +378,8 @@ public void setPricedFinalBill(double finalBill) {
 
         this.assignedDriver = driver;
         driver.markBusy();
-
+        // The assigned driver observes subsequent order updates.
+        addObserver(driver);
 
         	notifyObservers(
         		    "A driver has been assigned to your order: "
@@ -368,6 +402,7 @@ public void setPricedFinalBill(double finalBill) {
      *         is not satisfied
      */
     public void placeOrder() {
+        ensureNotDelivered();
 
         if (items.isEmpty()) {
             throw new IllegalArgumentException(
@@ -539,6 +574,18 @@ public void setPricedFinalBill(double finalBill) {
      * @param observer the observer to register
      * @throws IllegalArgumentException if the observer is null
      */
+    /**
+     * Rejects changes to business data after an order is delivered.
+     *
+     * @throws IllegalStateException if this order is already delivered
+     */
+    protected final void ensureNotDelivered() {
+        if ("DELIVERED".equals(status)) {
+            throw new IllegalStateException(
+                    "Delivered orders cannot be modified");
+        }
+    }
+
     public void addObserver(OrderObserver observer) {
         if (observer == null) {
             throw new IllegalArgumentException("Observer cannot be null");
