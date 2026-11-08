@@ -1,7 +1,7 @@
 package najah.edu.notification;
 import najah.edu.domain.User;
 
-public class EmailNotificationService implements NotificationService {
+public class EmailNotificationService implements NotificationService, OrderObserver {
 
     private static final String SUBJECT =
             "Smart Food Delivery - Order Update";
@@ -32,7 +32,7 @@ public class EmailNotificationService implements NotificationService {
         this.recipientEmail = recipientEmail.trim();
         this.emailService = emailService;
     }
-    
+
     public EmailNotificationService(User customer) {
         this(requireCustomerEmail(customer), new EmailService());
     }
@@ -72,5 +72,10 @@ public class EmailNotificationService implements NotificationService {
                 message
         );
     }
-    
+
+    @Override
+    public void update(String message) {
+        sendNotification(message);
+    }
+
 }

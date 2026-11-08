@@ -88,4 +88,50 @@ public class ScheduledOrderTest {
 
         verifyNoInteractions(dateTimeService);
     }
+    @Test
+    public void testScheduledDeliveryTimeCannotChangeAfterDelivered() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+        restaurant.setDeliveryZone("Nablus");
+        restaurant.setMinimumOrderValue(10.0);
+
+        MenuItem pizza = new MenuItem("Pizza", 20.0, true);
+        restaurant.addMenuItem(pizza);
+
+        LocalDateTime currentTime =
+                LocalDateTime.of(2026, 11, 7, 10, 0);
+        LocalDateTime scheduledTime =
+                LocalDateTime.of(2026, 11, 7, 12, 0);
+        LocalDateTime changedTime =
+                LocalDateTime.of(2026, 11, 7, 13, 0);
+
+        when(dateTimeService.getCurrentTime())
+                .thenReturn(currentTime);
+
+        ScheduledOrder order =
+                new ScheduledOrder(restaurant, dateTimeService);
+
+        order.addItem(pizza, 1);
+        order.setDeliveryAddress("Nablus");
+        order.setDeliveryDistance(5.0);
+        order.setScheduledDeliveryTime(scheduledTime);
+        order.placeOrder();
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+        order.markOutForDelivery();
+        order.markDelivered();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.setScheduledDeliveryTime(changedTime)
+        );
+
+        assertEquals(
+                scheduledTime,
+                order.getScheduledDeliveryTime()
+        );
+    }
+
 }

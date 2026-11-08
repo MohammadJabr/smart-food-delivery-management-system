@@ -1,3 +1,4 @@
+
 package najah.edu.domain;
 
 public class CarDriver extends Driver {
@@ -8,12 +9,21 @@ public class CarDriver extends Driver {
         super(name, status, DriverType.CAR);
     }
 
+    public CarDriver(
+            String name,
+            Status status,
+            double distanceToRestaurantKm,
+            int estimatedArrivalMinutes) {
+
+        super(name, status, distanceToRestaurantKm,
+                estimatedArrivalMinutes, DriverType.CAR);
+    }
+
     public boolean canHandleOrderQuantity(int quantity) {
 
         if (quantity <= 0) {
             throw new IllegalArgumentException(
-                    "Order quantity must be greater than zero"
-            );
+                    "Order quantity must be greater than zero");
         }
 
         return quantity <= MAX_ORDER_QUANTITY;

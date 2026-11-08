@@ -4,13 +4,16 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class Restaurant {
+import najah.edu.notification.OrderObserver;
+
+public class Restaurant implements OrderObserver {
 
     private String name;
     private boolean open;
     private String deliveryZone;
     private double minimumOrderValue;
     private final List<MenuItem> menuItems;
+    private final List<String> notifications = new ArrayList<>();
 
     public Restaurant(String name, boolean open) {
 
@@ -83,4 +86,26 @@ public class Restaurant {
                 new ArrayList<>(menuItems)
         );
     }
+    /**
+     * Returns the notifications received for this restaurant's orders.
+     *
+     * @return an unmodifiable copy of the notification messages
+     */
+    public List<String> getNotifications() {
+        return Collections.unmodifiableList(
+                new ArrayList<>(notifications));
+    }
+
+    @Override
+    public void update(String message) {
+        if (message == null || message.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Notification message cannot be empty");
+        }
+
+        notifications.add(message);
+        System.out.println(
+                "Restaurant " + name + " notified: " + message);
+    }
+
 }

@@ -22,12 +22,13 @@ public class PricingService {
 
         if (order == null) {
             throw new IllegalArgumentException(
-                    "Order cannot be null"
-            );
+                    "Order cannot be null");
         }
 
-        return pricingStrategy.calculatePrice(
-                order.getFinalBill()
-        );
+        double calculatedPrice =
+                pricingStrategy.calculatePrice(
+                        order.getBaseFinalBill());
+
+        return Math.round(calculatedPrice * 100.0) / 100.0;
     }
 }

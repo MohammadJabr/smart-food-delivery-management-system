@@ -1,6 +1,12 @@
 package najah.edu.domain;
 
-public class Driver {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import najah.edu.notification.OrderObserver;
+
+public class Driver implements OrderObserver {
 
     public enum Status {
         AVAILABLE,
@@ -12,6 +18,7 @@ public class Driver {
     private Status status;
     private final double distanceToRestaurantKm;
     private final int estimatedArrivalMinutes;
+    private final List<String> notifications = new ArrayList<>();
 
     public Driver(String name, Status status) {
         this(name, status, Double.MAX_VALUE, Integer.MAX_VALUE,
@@ -99,4 +106,26 @@ public class Driver {
 
         return true;
     }
+    /**
+     * Returns the notifications received by this driver.
+     *
+     * @return an unmodifiable copy of the notification messages
+     */
+    public List<String> getNotifications() {
+        return Collections.unmodifiableList(
+                new ArrayList<>(notifications));
+    }
+
+    @Override
+    public void update(String message) {
+        if (message == null || message.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Notification message cannot be empty");
+        }
+
+        notifications.add(message);
+        System.out.println(
+                "Driver " + name + " notified: " + message);
+    }
+
 }

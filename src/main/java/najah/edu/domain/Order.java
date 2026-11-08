@@ -2,10 +2,15 @@
 package najah.edu.domain;
 
 import java.util.ArrayList;
+
 import java.util.List;
 
 import najah.edu.notification.NotificationService;
 
+import najah.edu.notification.OrderObserver;
+
+import najah.edu.strategy.DeliveryCostStrategy;
+import najah.edu.strategy.DistanceBasedDeliveryCostStrategy;
 /**
  * Represents a customer food order in the Smart Food Delivery System.
  *
@@ -39,11 +44,22 @@ public class Order {
     /** The service responsible for sending order notifications. */
     private NotificationService notificationService;
 
+    /**
+     * The list of observers registered to receive order updates.
+     */
+    private List<OrderObserver> observers = new ArrayList<>();
+
     /** The delivery distance in kilometers. */
     private double deliveryDistance;
 
     /** The calculated delivery fee. */
     private double deliveryFee;
+
+    /** The final bill after applying a pricing strategy. */
+    private Double pricedFinalBill;
+
+    /** Strategy used to calculate this order's delivery fee. */
+    private final DeliveryCostCalculator deliveryCostCalculator;
 
     /**
      * Creates a new order for the specified restaurant.
@@ -55,6 +71,19 @@ public class Order {
      * @throws IllegalArgumentException if the restaurant is null or closed
      */
     public Order(Restaurant restaurant) {
+        this(restaurant, new DistanceBasedDeliveryCostStrategy());
+    }
+
+    /**
+     * Creates an order using the supplied delivery-cost strategy.
+     *
+     * @param restaurant the restaurant for this order
+     * @param deliveryCostStrategy the strategy used to calculate delivery fees
+     * @throws IllegalArgumentException if the restaurant or strategy is invalid
+     */
+    public Order(
+            Restaurant restaurant,
+            DeliveryCostStrategy deliveryCostStrategy) {
 
         if (restaurant == null) {
             throw new IllegalArgumentException(
@@ -68,10 +97,21 @@ public class Order {
             );
         }
 
+        if (deliveryCostStrategy == null) {
+            throw new IllegalArgumentException(
+                    "Delivery cost strategy cannot be null"
+            );
+        }
+
         this.restaurant = restaurant;
         this.items = new ArrayList<>();
         this.status = "DRAFT";
         this.assignedDriver = null;
+        this.deliveryCostCalculator =
+                new DeliveryCostCalculator(deliveryCostStrategy);
+
+        // The restaurant observes every update to its order.
+        addObserver(restaurant);
     }
 
     /**
@@ -86,6 +126,7 @@ public class Order {
      *         does not belong to the restaurant, or has an invalid quantity
      */
     public void addItem(MenuItem menuItem, int quantity) {
+        ensureNotDelivered();
 
         if (menuItem == null) {
             throw new IllegalArgumentException(
@@ -188,6 +229,7 @@ public class Order {
      * @throws IllegalArgumentException if the address is null or empty
      */
     public void setDeliveryAddress(String deliveryAddress) {
+        ensureNotDelivered();
 
         if (deliveryAddress == null ||
                 deliveryAddress.trim().isEmpty()) {
@@ -210,9 +252,10 @@ public class Order {
     }
 
     /**
-     * Sets the notification service used to send order updates.
+     * Sets the notification service used alongside registered observers.
      *
-     * Passing null disables notifications for this order.
+     * Passing null disables this notification service,
+     * but registered observers remain active.
      *
      * @param notificationService the notification service to use
      */
@@ -231,13 +274,12 @@ public class Order {
      * @throws IllegalArgumentException if the delivery distance is invalid
      */
     public void setDeliveryDistance(double deliveryDistance) {
+        ensureNotDelivered();
 
-        DeliveryCostCalculator calculator =
-                new DeliveryCostCalculator();
+        double calculatedFee =
+                deliveryCostCalculator.calculateDeliveryCost(deliveryDistance);
 
-        this.deliveryFee =
-                calculator.calculateDeliveryCost(deliveryDistance);
-
+        this.deliveryFee = calculatedFee;
         this.deliveryDistance = deliveryDistance;
     }
 
@@ -259,15 +301,47 @@ public class Order {
         return deliveryFee;
     }
 
-    /**
-     * Calculates the final bill by adding the food total
-     * and the delivery fee.
-     *
-     * @return the final order bill
-     */
-    public double getFinalBill() {
-        return getTotal() + deliveryFee;
+
+/**
+ * Calculates the original bill before applying dynamic pricing.
+ *
+ * @return food total plus delivery fee
+ */
+public double getBaseFinalBill() {
+    return getTotal() + deliveryFee;
+}
+
+/**
+ * Returns the final bill after applying pricing.
+ *
+ * If no pricing strategy has been applied,
+ * the original bill is returned.
+ *
+ * @return the final bill
+ */
+public double getFinalBill() {
+    return pricedFinalBill != null
+            ? pricedFinalBill.doubleValue()
+            : getBaseFinalBill();
+}
+
+/**
+ * Stores the final bill calculated by a pricing strategy.
+ *
+ * @param finalBill the calculated final amount
+ * @throws IllegalArgumentException if the amount is invalid
+ */
+public void setPricedFinalBill(double finalBill) {
+        ensureNotDelivered();
+
+    if (!Double.isFinite(finalBill) || finalBill < 0) {
+        throw new IllegalArgumentException(
+                "Final bill must be non-negative and finite");
     }
+
+    this.pricedFinalBill = finalBill;
+}
+
 
     /**
      * Assigns an available driver to this order.
@@ -275,13 +349,14 @@ public class Order {
      * The driver must be available, and no driver must have
      * already been assigned to this order.
      * The driver's status changes to BUSY after assignment.
-     * A notification is sent if a notification service is configured.
+     * Registered notification services and observers are notified when configured.
      *
      * @param driver the driver to assign to the order
      * @throws IllegalArgumentException if the driver is null or unavailable
      * @throws IllegalStateException if a driver is already assigned
      */
     public void assignDriver(Driver driver) {
+        ensureNotDelivered();
 
         if (driver == null) {
             throw new IllegalArgumentException(
@@ -303,13 +378,14 @@ public class Order {
 
         this.assignedDriver = driver;
         driver.markBusy();
+        // The assigned driver observes subsequent order updates.
+        addObserver(driver);
 
-        if (notificationService != null) {
-            notificationService.sendNotification(
-                    "A driver has been assigned to your order: "
-                    + driver.getName()
-            );
-        }
+        	notifyObservers(
+        		    "A driver has been assigned to your order: "
+        		    + driver.getName()
+        		);
+
     }
 
     /**
@@ -326,6 +402,7 @@ public class Order {
      *         is not satisfied
      */
     public void placeOrder() {
+        ensureNotDelivered();
 
         if (items.isEmpty()) {
             throw new IllegalArgumentException(
@@ -355,6 +432,10 @@ public class Order {
         }
 
         status = "PENDING";
+
+
+        	notifyObservers("Order status changed to PENDING");
+
     }
 
     /**
@@ -373,6 +454,7 @@ public class Order {
         }
 
         status = "CONFIRMED";
+        notifyObservers("Order status changed to CONFIRMED");
     }
 
     /**
@@ -393,11 +475,9 @@ public class Order {
 
         status = "PREPARING";
 
-        if (notificationService != null) {
-            notificationService.sendNotification(
-                    "Order status changed to PREPARING"
-            );
-        }
+
+        	notifyObservers("Order status changed to PREPARING");
+
     }
 
     /**
@@ -417,6 +497,7 @@ public class Order {
         }
 
         status = "CANCELLED";
+        notifyObservers("Order status changed to CANCELLED");
     }
 
     /**
@@ -435,6 +516,7 @@ public class Order {
         }
 
         status = "READY";
+        notifyObservers("Order status changed to READY");
     }
 
     /**
@@ -455,11 +537,9 @@ public class Order {
 
         status = "OUT_FOR_DELIVERY";
 
-        if (notificationService != null) {
-            notificationService.sendNotification(
-                    "Order status changed to OUT_FOR_DELIVERY"
-            );
-        }
+
+        	notifyObservers("Order status changed to OUT_FOR_DELIVERY");
+
     }
 
     /**
@@ -481,10 +561,65 @@ public class Order {
 
         status = "DELIVERED";
 
+
+        	notifyObservers("Order status changed to DELIVERED");
+
+    }
+
+    /**
+     * Registers an observer to receive notifications about this order.
+     *
+     * Duplicate observers are not added.
+     *
+     * @param observer the observer to register
+     * @throws IllegalArgumentException if the observer is null
+     */
+    /**
+     * Rejects changes to business data after an order is delivered.
+     *
+     * @throws IllegalStateException if this order is already delivered
+     */
+    protected final void ensureNotDelivered() {
+        if ("DELIVERED".equals(status)) {
+            throw new IllegalStateException(
+                    "Delivered orders cannot be modified");
+        }
+    }
+
+    public void addObserver(OrderObserver observer) {
+        if (observer == null) {
+            throw new IllegalArgumentException("Observer cannot be null");
+        }
+
+        if (!observers.contains(observer)) {
+            observers.add(observer);
+        }
+    }
+
+    /**
+     * Removes an observer from this order.
+     *
+     * @param observer the observer to remove
+     */
+    public void removeObserver(OrderObserver observer) {
+        observers.remove(observer);
+    }
+
+    /**
+     * Notifies the configured notification service and all registered observers.
+     *
+     * @param message the notification message
+     */
+    private void notifyObservers(String message) {
+
         if (notificationService != null) {
-            notificationService.sendNotification(
-                    "Order status changed to DELIVERED"
-            );
+            notificationService.sendNotification(message);
+        }
+
+        for (OrderObserver observer : observers) {
+            if (observer != notificationService) {
+                observer.update(message);
+            }
         }
     }
 }
