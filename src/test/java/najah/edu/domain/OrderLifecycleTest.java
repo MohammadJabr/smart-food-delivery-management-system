@@ -165,4 +165,55 @@ public class OrderLifecycleTest {
 
         assertEquals("DELIVERED", order.getStatus());
     }
+    @Test
+    public void testDeliveredOrderCannotBeModified() {
+
+        order.setDeliveryDistance(5.0);
+        order.setPricedFinalBill(50.0);
+
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+        order.markOutForDelivery();
+        order.markDelivered();
+
+        MenuItem extraItem =
+                new MenuItem("Extra", 5.0, true);
+
+        Driver newDriver =
+                new Driver("Omar", Driver.Status.AVAILABLE);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.addItem(extraItem, 1)
+        );
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.setDeliveryAddress("Other address")
+        );
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.setDeliveryDistance(10.0)
+        );
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.setPricedFinalBill(60.0)
+        );
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.assignDriver(newDriver)
+        );
+        assertThrows(
+                IllegalStateException.class,
+                () -> order.placeOrder()
+        );
+
+        assertEquals("DELIVERED", order.getStatus());
+        assertEquals(1, order.getItems().size());
+        assertEquals("Nablus", order.getDeliveryAddress());
+        assertEquals(5.0, order.getDeliveryDistance(), 0.001);
+        assertEquals(50.0, order.getFinalBill(), 0.001);
+        assertTrue(newDriver.isAvailable());
+    }
+
 }
