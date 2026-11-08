@@ -153,4 +153,66 @@ void testObserverReceivesOrderLifecycleNotifications() {
     );
 }
 
+    @Test
+    void testRestaurantReceivesOrderLifecycleNotifications() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+        restaurant.setDeliveryZone("Nablus");
+        restaurant.setMinimumOrderValue(10.0);
+
+        MenuItem pizza = new MenuItem("Pizza", 20.0, true);
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+        order.addItem(pizza, 1);
+        order.setDeliveryAddress("Nablus");
+
+        order.placeOrder();
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+        order.markOutForDelivery();
+        order.markDelivered();
+
+        assertTrue(restaurant.getNotifications().contains(
+                "Order status changed to PENDING"));
+        assertTrue(restaurant.getNotifications().contains(
+                "Order status changed to DELIVERED"));
+    }
+
+    @Test
+    void testAssignedDriverReceivesAssignmentAndLifecycleNotifications() {
+
+        Restaurant restaurant =
+                new Restaurant("Pizza House", true);
+        restaurant.setDeliveryZone("Nablus");
+        restaurant.setMinimumOrderValue(10.0);
+
+        MenuItem pizza = new MenuItem("Pizza", 20.0, true);
+        restaurant.addMenuItem(pizza);
+
+        Order order = new Order(restaurant);
+        order.addItem(pizza, 1);
+        order.setDeliveryAddress("Nablus");
+        order.placeOrder();
+
+        Driver driver =
+                new Driver("Omar", Driver.Status.AVAILABLE);
+
+        order.assignDriver(driver);
+        order.confirmOrder();
+        order.startPreparing();
+        order.markReady();
+        order.markOutForDelivery();
+        order.markDelivered();
+
+        assertTrue(driver.getNotifications().contains(
+                "A driver has been assigned to your order: Omar"));
+        assertTrue(driver.getNotifications().contains(
+                "Order status changed to OUT_FOR_DELIVERY"));
+        assertTrue(driver.getNotifications().contains(
+                "Order status changed to DELIVERED"));
+    }
+
 }
