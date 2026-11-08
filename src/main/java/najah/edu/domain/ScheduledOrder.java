@@ -37,6 +37,8 @@ public class ScheduledOrder extends Order {
     public void setScheduledDeliveryTime(
             LocalDateTime scheduledDeliveryTime) {
 
+        ensureNotDelivered();
+
         if (scheduledDeliveryTime == null) {
             throw new IllegalArgumentException(
                     "Scheduled delivery time cannot be null"
